@@ -90,32 +90,46 @@
 
     /* Mobile responsiveness */
     @media (max-width: 768px) {
-        .row {
-            flex-direction: column;
-            align-items: flex-start;
-        }
+    .row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 
-        .dropdown, .dataInput, .sumInput {
-            width: 90%;
-            max-width: 100%;
-            margin-bottom: 10px;
-        }
+    .dropdown, .dataInput, .sumInput {
+        width: 90%;
+        max-width: 100%;
+        margin-bottom: 10px;
+    }
 
-        .removeButton {
-            width: 90%;
-            margin-top: 10px;
-        }
+    .removeButton {
+        width: 90%;
+        margin-top: 10px;
+    }
 
-        table, th, td {
-            font-size: 14px; /* Adjusted for mobile */
-        }
-        
-        #addButton, button[type="button"]:last-child {
-        width: 100%;  /* Full width on mobile */
+    table, th, td {
+        font-size: 14px; /* Adjusted for mobile */
+    }
+
+    /* Adjust button sizes for mobile */
+    #addButton, button[type="button"]:last-child {
+        width: 90%;  /* Full width on mobile */
         padding: 15px; /* Increased padding for better touch targets */
         font-size: 18px; /* Increased font size */
-    	}
+        margin-bottom: 10px; /* Add space between the buttons */
     }
+
+    /* Ensure buttons are stacked vertically and properly spaced */
+    #addButton, button[type="button"]:last-child {
+        display: block; /* Stack the buttons */
+    }
+}
+
+/* Prevent submit button from shrinking after clicking */
+button[type="button"]:last-child {
+    width: 90%;
+    padding: 15px;
+    font-size: 18px;
+}
 </style>
 </head>
 <body>
