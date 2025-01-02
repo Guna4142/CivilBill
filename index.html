@@ -24,6 +24,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 10px;
+        flex-wrap: wrap;
     }
 
     .dropdown, .dataInput, .sumInput {
@@ -32,6 +33,7 @@
         width: 100%;
         max-width: 150px;
         margin-right: 10px;
+        box-sizing: border-box;
     }
 
     .dataInput {
@@ -50,6 +52,7 @@
         border: none;
         cursor: pointer;
         font-size: 14px;
+        margin-top: 10px;
     }
 
     .removeButton:hover {
@@ -92,15 +95,22 @@
             width: 100%;
             max-width: 100%;
             margin-bottom: 10px;
+            font-size: 18px;  /* Increase font size */
         }
 
         .removeButton {
             width: 100%;
             margin-top: 10px;
+            font-size: 18px;  /* Increase font size */
         }
 
         .resultItem input {
             width: 100%;
+            font-size: 18px;  /* Increase font size */
+        }
+
+        .resultTotal {
+            font-size: 18px;  /* Increase font size */
         }
     }
 </style>
