@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Insert title here</title>
+<title>Bill Report</title>
 <style>
     /* Base styles for layout */
     body {
         font-family: Arial, sans-serif;
         margin: 0;
-        padding: 0;
+        padding: 20px; /* Padding for full layout */
         background-color: #f4f4f4;
     }
 
     .container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 20px;
     }
 
     .row {
@@ -29,7 +29,7 @@
 
     .dropdown, .dataInput, .sumInput {
         padding: 5px;
-        font-size: 14px;
+        font-size: 16px; /* Increased font size */
         width: 100%;
         max-width: 150px;
         margin-right: 10px;
@@ -46,12 +46,12 @@
     }
 
     .removeButton {
-        padding: 5px 10px;
+        padding: 8px 12px;
         background-color: red;
         color: white;
         border: none;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 16px; /* Increased font size */
         margin-top: 10px;
     }
 
@@ -60,23 +60,27 @@
     }
 
     .resultContainer {
-        display: flex;
-        flex-direction: column;
         margin-top: 20px;
     }
 
-    .resultItem {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
     }
 
-    .resultItem input {
-        border: none;
-        outline: none;
-        background: transparent;
-        font-size: 16px;
+    table, th, td {
+        border: 1px solid #ccc;
+    }
+
+    th, td {
         text-align: center;
+        padding: 10px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
     }
 
     .resultTotal {
@@ -84,8 +88,8 @@
         margin-top: 20px;
     }
 
-	    /* Mobile responsiveness */
-	    @media (max-width: 768px) {
+    /* Mobile responsiveness */
+    @media (max-width: 800px) {
         .row {
             flex-direction: column;
             align-items: flex-start;
@@ -95,23 +99,22 @@
             width: 100%;
             max-width: 100%;
             margin-bottom: 10px;
-            font-size: 18px;  /* Increase font size */
         }
 
         .removeButton {
             width: 100%;
             margin-top: 10px;
-            font-size: 18px;  /* Increase font size */
         }
 
-        .resultItem input {
-            width: 100%;
-            font-size: 18px;  /* Increase font size */
+        table, th, td {
+            font-size: 14px; /* Adjusted for mobile */
         }
-
-        .resultTotal {
-            font-size: 18px;  /* Increase font size */
-        }
+        
+        #addButton, button[type="button"]:last-child {
+        width: 100%;  /* Full width on mobile */
+        padding: 15px; /* Increased padding for better touch targets */
+        font-size: 18px; /* Increased font size */
+    	}
     }
 </style>
 </head>
@@ -129,7 +132,6 @@
         var rows = []; // Array to store rows
 
         function create() {
-            var details = ["roofslab", "tools"];
             var options = [
                 { value: 'option1', text: 'roofslab' },
                 { value: 'option2', text: 'tools' }
@@ -139,12 +141,9 @@
             newDiv.classList.add("row");
             mainDiv.appendChild(newDiv);
 
-            var innerDiv = document.createElement("div");
-            newDiv.appendChild(innerDiv);
-
             var selectElement = document.createElement("select");
             selectElement.classList.add("dropdown");
-            innerDiv.appendChild(selectElement);
+            newDiv.appendChild(selectElement);
 
             options.forEach(optionData => {
                 const option = document.createElement('option');
@@ -156,29 +155,29 @@
             var dataInput = document.createElement("input");
             dataInput.classList.add("dataInput");
             dataInput.type = "text";  // Text input to allow feet and inches format
-            innerDiv.appendChild(dataInput);
+            newDiv.appendChild(dataInput);
 
             // Create a span to display the equal sign between the two input boxes
             var equalSign = document.createElement("span");
             equalSign.textContent = " = ";
-            innerDiv.appendChild(equalSign);
+            newDiv.appendChild(equalSign);
 
             var sumInput = document.createElement("input");
             sumInput.classList.add("sumInput");
             sumInput.type = "text";
             sumInput.disabled = true;  // Disable the second input box for editing
-            innerDiv.appendChild(sumInput);
+            newDiv.appendChild(sumInput);
 
             var squareFeet = document.createElement("span");
             squareFeet.textContent = " sqft";
-            innerDiv.appendChild(squareFeet);
+            newDiv.appendChild(squareFeet);
 
             // Create a Remove button for this row
             var removeButton = document.createElement("button");
             removeButton.textContent = "Remove";
             removeButton.type = "button";
             removeButton.classList.add("removeButton");
-            innerDiv.appendChild(removeButton);
+            newDiv.appendChild(removeButton);
 
             // Event listener for the Remove button
             removeButton.addEventListener("click", function () {
@@ -194,21 +193,25 @@
                 var inches = 0;
 
                 // Regex to match format like 21'3'' (feet and inches)
-                var match = inputValue.match(/^(\d+)'(\d+)''$/);
+                 var match = inputValue.match(/^(\d+)'(\d+)''$/);
 
-                if (match) {
-                    feet = parseInt(match[1]);
-                    inches = parseInt(match[2]);
-                } else {
-                    // If the input is already a decimal number (e.g., 2.1)
-                    feet = parseFloat(inputValue);
-                }
+    if (match) {
+        feet = parseInt(match[1]);
+        inches = parseInt(match[2]);
+    } else if (inputValue.match(/^(\d+)''$/)) {
+        // If the input is just inches (e.g., 3'')
+        inches = parseInt(inputValue.match(/^(\d+)''$/)[1]);
+    } else {
+        // If the input is already a decimal number (e.g., 2.1)
+        feet = parseFloat(inputValue);
+    }
 
                 // Convert feet and inches to decimal (inches / 12)
                 return feet + (inches / 12);
             }
 
             // Event listener for the first input box
+         // Event listener for the first input box
             dataInput.addEventListener('input', function () {
                 var dataValue = dataInput.value.trim();
 
@@ -221,7 +224,7 @@
 
                 // Iterate through each part and calculate the total
                 parts.forEach(function (part) {
-                    if (part.match(/^\d+'(\d+)''$/)) {
+                    if (part.match(/^\d+'(\d+)''$/) || part.match(/^\d+''$/)) {
                         var decimalValue = parseFeetAndInches(part);
                         total *= decimalValue;
                     } else if (!isNaN(part)) {
@@ -234,6 +237,7 @@
 
                 sumInput.value = total.toFixed(2);  // Display the total in the second input box
             });
+
         }
 
         var addButton = document.createElement('button');
@@ -261,25 +265,27 @@
             resultDiv.id = "resultDiv";
             containerDiv.appendChild(resultDiv);
 
-            // Add some basic styling for the result
-            resultDiv.style.marginTop = '20px';
-            resultDiv.style.fontFamily = 'Arial, sans-serif';
-            resultDiv.style.padding = '10px';
-            resultDiv.style.border = '1px solid #ccc';
-            resultDiv.style.borderRadius = '5px';
-            resultDiv.style.backgroundColor = '#f9f9f9';
+            // Add a table for the results
+            var table = document.createElement("table");
+            resultDiv.appendChild(table);
 
-            // Create a header for the result section
-            var resultHeader = document.createElement("h3");
-            resultHeader.textContent = "Bill Summary";
-            resultHeader.style.textAlign = 'center';
-            resultDiv.appendChild(resultHeader);
+            // Add table heading
+            var thead = document.createElement("thead");
+            table.appendChild(thead);
 
-            // Add a container for each result item
-            var resultContainer = document.createElement("div");
-            resultContainer.style.display = 'flex';
-            resultContainer.style.flexDirection = 'column';
-            resultDiv.appendChild(resultContainer);
+            var headingRow = document.createElement("tr");
+            thead.appendChild(headingRow);
+
+            var headings = ["Description", "Measurement", "Total (sqft)"];
+            headings.forEach(function(heading) {
+                var th = document.createElement("th");
+                th.textContent = heading;
+                headingRow.appendChild(th);
+            });
+
+            // Add table body
+            var tbody = document.createElement("tbody");
+            table.appendChild(tbody);
 
             var total = 0;
 
@@ -294,49 +300,34 @@
                 var totalValue = parseFloat(sumInput.value);
 
                 if (inputValue && !isNaN(totalValue)) {
-                    var resultDiv = document.createElement("div");
-                    resultContainer.appendChild(resultDiv);
+                    var row = document.createElement("tr");
+                    tbody.appendChild(row);
 
-                    var input1 = document.createElement("input");
-                    input1.id = "inpu1";
-                    input1.type = "text";
-                    input1.value = selectedOption;
-                    styleInput(input1);
-                    resultDiv.appendChild(input1);
+                    [selectedOption, inputValue, totalValue + " sqft"].forEach(function(cellData) {
+                        var td = document.createElement("td");
+                        td.textContent = cellData;
+                        row.appendChild(td);
+                    });
 
-                    var input2 = document.createElement("input");
-                    input2.id = "inpu2";
-                    input2.type = "text";
-                    input2.value = inputValue;
-                    styleInput(input2);
-                    resultDiv.appendChild(input2);
-
-                    var input3 = document.createElement("input");
-                    input3.id = "inpu3";
-                    input3.type = "text";
-                    input3.value = totalValue + " sqft";
-                    styleInput(input3);
-                    resultDiv.appendChild(input3);
                     total += totalValue;
                 }
             });
 
-            var totalText = "Total = " + total + " sqft";
-            var totalElement = document.createElement("div");
-            totalElement.textContent = totalText;
-            totalElement.style.marginTop = "20px";
-            totalElement.style.fontWeight = "bold";
-            resultDiv.appendChild(totalElement);
+            // Add total row
+            var totalRow = document.createElement("tr");
+            tbody.appendChild(totalRow);
 
+            var totalCell = document.createElement("td");
+            totalCell.colSpan = 2;
+            totalCell.textContent = "Total";
+            totalCell.style.fontWeight = "bold";
+            totalRow.appendChild(totalCell);
+
+            var totalValueCell = document.createElement("td");
+            totalValueCell.textContent = total.toFixed(2) + " sqft";
+            totalValueCell.style.fontWeight = "bold";
+            totalRow.appendChild(totalValueCell);
         });
-
-        function styleInput(inputElement) {
-            inputElement.style.border = "none";
-            inputElement.style.outline = "none";
-            inputElement.style.background = "transparent";
-            inputElement.style.fontSize = "16px";
-        }
-
     </script>
 </div>
 </body>
