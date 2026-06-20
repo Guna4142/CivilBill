@@ -651,16 +651,18 @@ function speakSqft(val) {
 */
 const GROUP_NAME_FIXES = [
   // [pattern, replacement]  — case-insensitive, word-boundary aware
-  [/\b(kaalam|kaalum|kaalu|kaal|kal|kall|call|colon|colum)\b/gi, 'column'],
+  [/\b(kaalam|kaalum|kaalu|kaal|kal|kall|call|colon|colum|coloum)\b/gi, 'column'],
   [/\b(beem|beam ?work)\b/gi, 'beam'],
-  [/\b(slap|slaap)\b/gi, 'slab'],
-  [/\b(wol|waal|val)\b/gi, 'wall'],
+  [/\b(slap|slaap|slabs?)\b/gi, 'slab'],
+  [/\b(wol|waal|val|valls?)\b/gi, 'wall'],
   [/\b(door ?way|doorvey)\b/gi, 'door'],
   [/\b(rufe|roff|rooph)\b/gi, 'roof'],
-  [/\b(foam|footing|foting)\b/gi, 'footing'],
+  [/\b(foam|footing|foting|footings|footsteps?|foot ?step|foot ?steps?)\b/gi, 'footing'],
   [/\b(plinth ?beam|plynth)\b/gi, 'plinth'],
-  [/\b(open ?ing)\b/gi, 'openings'],
-  [/\b(boxe|bux|bocks)\b/gi, 'box'],
+  [/\b(open ?ing|openings)\b/gi, 'openings'],
+  [/\b(boxe|bux|bocks|boxes)\b/gi, 'box'],
+  [/\b(left|laft|lefts?)\b/gi, 'lift'],
+  [/\b(side ?beam|side ?bim)\b/gi, 'beam side'],
   // pure Tamil transcript of "column box"
   [/காலம்\s*பாக்ஸ்/g, 'column box'],
   [/கால்?\s*பாக்ஸ்/g, 'column box'],
@@ -671,10 +673,96 @@ function fixGroupName(raw) {
   if (!raw) return raw;
   let s = raw.trim();
   for (const [pat, rep] of GROUP_NAME_FIXES) s = s.replace(pat, rep);
-  // collapse spaces and lowercase the leading word for tidiness
+  // collapse spaces
   s = s.replace(/\s+/g, ' ').trim();
   return s;
 }
+
+/* ---------- Predefined group-name dictionary ----------
+   The phrases below are the user's standard construction-bill labels.
+   After STT we try to map the heard text to the closest predefined name.
+   If no entry is "close enough" we fall back to the user's spoken phrase
+   (so any new label still works).
+
+   To add more, just push strings into PREDEFINED_GROUPS.
+*/
+const PREDEFINED_GROUPS = [
+  'column box',
+  'roof slabs',
+  'foot steps',
+  'lift beam',
+  'beam side',
+];
+
+// Normalize for fuzzy comparison: lowercase, strip punctuation, collapse spaces,
+// and run the GROUP_NAME_FIXES rules so STT errors map to canonical forms.
+function _norm(s) {
+  return fixGroupName(String(s || ''))
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Cheap token-set similarity:
+//   score = |A ∩ B| / max(|A|, |B|)
+// Tokens are word-boundary splits of normalized strings.
+function _tokenSim(a, b) {
+  const A = new Set(_norm(a).split(' ').filter(Boolean));
+  const B = new Set(_norm(b).split(' ').filter(Boolean));
+  if (!A.size || !B.size) return 0;
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter++;
+  return inter / Math.max(A.size, B.size);
+}
+
+// Damerau-style ratio (rough): 1 - editDistance/maxLen. Good for catching
+// "colum box" vs "column box" where token-overlap is only partial.
+function _editRatio(a, b) {
+  a = _norm(a); b = _norm(b);
+  if (!a || !b) return 0;
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) / Math.max(m, n) > 0.6) return 0; // too different
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const c = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + c
+      );
+    }
+  }
+  return 1 - dp[m][n] / Math.max(m, n);
+}
+
+/* Map a raw transcript to the closest predefined group name.
+   Returns { name, matched, score }:
+     - matched === true   => we found a confident match (>= 0.6 combined)
+     - matched === false  => no match; caller should use the user's phrase as-is
+*/
+function matchPredefinedGroup(raw) {
+  const cleaned = fixGroupName(raw);
+  if (!cleaned) return { name: cleaned, matched: false, score: 0 };
+
+  let best = { name: cleaned, score: 0 };
+  for (const candidate of PREDEFINED_GROUPS) {
+    // Combine token overlap (catches word order / extra words) with edit
+    // ratio (catches single-word phonetic slips). Weight 60/40.
+    const score = 0.6 * _tokenSim(cleaned, candidate)
+                + 0.4 * _editRatio(cleaned, candidate);
+    if (score > best.score) best = { name: candidate, score };
+  }
+
+  // Threshold: 0.6 keeps "kaal box"/"colum box"/"roof slab" mapping to the
+  // canonical names, while letting genuinely-new phrases pass through.
+  return { name: best.score >= 0.6 ? best.name : cleaned,
+           matched: best.score >= 0.6, score: best.score };
+}
+
 
 /* Try the listed locales in order and return the first non-empty transcript.
    Falls through on benign STT errors so we don't show the typed-prompt
@@ -706,13 +794,20 @@ async function onNewGroup(kind /* 'add' | 'deduct' */) {
       { silenceMs: 1800 }
     );
     const raw = transcript.trim();
-    const name = fixGroupName(raw);
+    // 1) Phonetic-fix STT slips (kaal/colum/slap/etc.)
+    // 2) Snap to a predefined construction label when the heard phrase is
+    //    close enough; otherwise keep the user's exact words so new labels
+    //    still work seamlessly.
+    const matched = matchPredefinedGroup(raw);
+    const name = matched.name;
 
     if (!name) throw new Error('empty name');
     addGroup(name, kind);
-    const note = (raw && name.toLowerCase() !== raw.toLowerCase())
-      ? ` (heard: "${raw}")` : '';
-    setStatus(`${kind === 'deduct' ? 'Deduct' : 'Add'} group created: "${name}"${note}`, 'result');
+    const heardNote = (raw && name.toLowerCase() !== raw.toLowerCase())
+      ? ` (heard: "${raw}"${matched.matched ? ', matched preset' : ''})`
+      : '';
+    setStatus(`${kind === 'deduct' ? 'Deduct' : 'Add'} group created: "${name}"${heardNote}`, 'result');
+
   } catch (err) {
     const reason = err && err.message ? err.message : 'unknown error';
     const name = window.prompt(
